@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 import connectDB from './config/db.config';
-import requestRoutes from './routes/request.routes';
 
 dotenv.config({
     path: process.env.NODE_ENV === "production" ? ".env" : ".env.development.local"
@@ -57,7 +56,11 @@ app.get("/", (req, res)  => {
 });
 
 //api routes
+import requestRoutes from './routes/request.routes';
+import collectionRoutes from './routes/collection.routes';
+
 app.use("/api/requests", requestRoutes);
+app.use("/api/collections",collectionRoutes);
 
 const PORT = process.env.PORT || 5000;
 
