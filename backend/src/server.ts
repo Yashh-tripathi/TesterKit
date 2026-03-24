@@ -3,74 +3,83 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 import connectDB from './config/db.config';
-
-dotenv.config({
-    path: process.env.NODE_ENV === "production" ? ".env" : ".env.development.local"
-});
-
-connectDB();
-
-
-const app = express();
-
-//body parser midddleware 
-app.use(express.json({limit: '40kb'}));
-app.use(express.urlencoded({ extended: true , limit: '40kb'}));
-
-
-
-//global error handler
-app.use((err:any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err.stack);
-    res.status(err.status || 500).json({
-        status: "error",
-        error: err.message || "Internal Server Error",
-        ...(process.env.NODE_ENV === "development" && { stack: err.stack })
-    });
-});
-
-
-
-
-//cors configuration
-app.use(cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE","HEAD", "OPTIONS"],
-    credentials: true,
-    allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "device-remember-token",
-        "Allow-Control-Allow-Origin",
-        "Origin",
-        "Accept",
-    ],
-}));
-
-
-
-
-app.get("/", (req, res)  => {
-    res.send("API is running...");
-});
-
-//api routes
 import requestRoutes from './routes/request.routes';
 import collectionRoutes from './routes/collection.routes';
 
+// Load env
+dotenv.config({
+  path: process.env.NODE_ENV === "production"
+    ? ".env"
+    : ".env.development.local"
+});
+
+// Connect DB
+connectDB();
+
+const app = express();
+
+// ✅ 1. Body parsers
+app.use(express.json({ limit: '40kb' }));
+app.use(express.urlencoded({ extended: true, limit: '40kb' }));
+
+// ✅ 2. CORS (keep simple for now)
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+//   credentials: true
+}));
+
+// app.use(cors({
+//     origin: true,
+//     credentials: true
+//   }));
+
+
+// 🔍 Optional debug logger (remove later)
+app.use((req, res, next) => {
+  console.log(`REQ: ${req.method} ${req.url}`);
+  next();
+});
+
+app.use((req, res, next) => {
+    console.log("---- REQUEST ----");
+    console.log("METHOD:", req.method);
+    console.log("URL:", req.url);
+    console.log("HEADERS:", req.headers);
+    next();
+  });
+
+// ✅ 3. Routes
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
+
 app.use("/api/requests", requestRoutes);
-app.use("/api/collections",collectionRoutes);
+app.use("/api/collections", collectionRoutes);
 
-const PORT = process.env.PORT || 5000;
+// ✅ 4. 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
 
+// ✅ 5. Global error handler (ALWAYS LAST)
+app.use((
+  err: any,
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  console.error("ERROR:", err.stack);
 
-//404 handler
-app.use((req,res) => {
-    res.status(404).json({error: "Route not found"});
-})
+  res.status(err.status || 500).json({
+    status: "error",
+    message: err.message || "Internal Server Error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack })
+  });
+});
 
+// Start server
+const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
